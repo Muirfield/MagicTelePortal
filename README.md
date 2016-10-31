@@ -1,3 +1,5 @@
+<img src="https://raw.githubusercontent.com/Muirfield/MagicTelePortal/master/media/portal-icon.jpg" style="width:64px;height:64px" width="64" height="64"/>
+
 # MagicTelePortal
 
 * Summary: Easy to use Portal plugin
@@ -6,10 +8,20 @@
 * DependencyPlugins: -
 * OptionalPlugins: FastTransfer
 * Categories: Fun
-* Plugin Access: Blocks, Commands
+* Plugin Access: Commands, Data Saving, World Editing
 
-Overview
---------
+## Overview
+
+**DO NOT POST QUESTION/BUG-REPORTS/REQUESTS IN THE REVIEWS**
+
+It is difficult to carry a conversation in the reviews.  If you have a
+question/bug-report/request please use the
+[Thread](http://forums.pocketmine.net/threads/magicteleportal.8053/) for
+that.  You are more likely to get a response and help that way.
+
+Please go to
+[github](https://github.com/alejandroliu/pocketmine-plugins/tree/master/MagicTelePortal)
+for the most up-to-date documentation.
 
 Simple plugin to make creation of portals easy.
 
@@ -37,7 +49,7 @@ Examples:
 
 ### Configuration
 
-~~~~
+```YAML
 [CODE]
 # How far can the portals be created
 max-dist: 8
@@ -47,37 +59,42 @@ border: 112
 center: 9
 # Block-id of the corners (defaults to Nether Brick Stairs)
 corner: 114
-# Broadcast teleports (UNIMPLEMENTED)
-broadcast-tp: true
 [/CODE]
-~~~~
+```
 
-
-### Permission Nodes:
+### Permission Nodes
 
 * mtp.cmd.mtp: Permission to create portals
 * mtp.destroy: Permission to destroy portals
 
-FAQ
----
+## FAQ
+
 
 * Q: How do I prevent people from breaking my portal?
-* A: Use an anti-grief plugin.
+* A: Use an anti-grief plugin or the `mtp.destroy` permission.
 
+## Changes
 
-Changes
--------
-
+* 1.3.2 : Bug-fix
+  * Fixed a very DUMB bug!
+* 1.3.1 : More fixes
+  * Fixed the double teleport issue.
+* 1.3.0 : Bug-fix
+  * Removed `manyworld` dependancy
+  * Added a base to the portal (so water won't leak)
+  * Translations: Spanish
+  * Fixed so that when people Transfer, they do not enter in the
+    location of the portal.
 * 1.2.0 : Simple update
-  * Renamed to MagicTelePortal
+  * Renamed to MagicTelePortal.  
+    **YOU MUST UPDATE CONFIG FILES**
   * Added `mtp.destroy` permission
 * 1.1.0 : Next release
   * Support for FastTransfer
   * Some configuration options
 * 1.0.0 : First submission
 
-Copyright
----------
+## Copyright
 
     MagicTelePortal
     Copyright (C) 2015 Alejandro Liu

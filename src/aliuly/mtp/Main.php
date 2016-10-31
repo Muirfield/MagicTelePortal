@@ -14,8 +14,13 @@ use pocketmine\block\Block;
 use pocketmine\level\Position;
 use pocketmine\utils\Config;
 use pocketmine\event\player\PlayerMoveEvent;
+use pocketmine\event\player\PlayerQuitEvent;
 use pocketmine\event\block\BlockBreakEvent;
 use pocketmine\event\block\BlockPlaceEvent;
+
+use aliuly\mtp\common\mc;
+use aliuly\mtp\common\MPMU;
+use aliuly\mtp\common\PluginCallbackTask;
 
 class Main extends PluginBase implements CommandExecutor,Listener {
 	protected $portals;
@@ -23,16 +28,12 @@ class Main extends PluginBase implements CommandExecutor,Listener {
 	protected $border;
 	protected $center;
 	protected $corner;
-
-	private function inGame(CommandSender $sender,$msg = true) {
-		if ($sender instanceof Player) return true;
-		if ($msg) $sender->sendMessage(TextFormat::RED.
-												 "You can only use this command in-game");
-		return false;
-	}
+	protected $tweak;
 
 	public function onEnable(){
+		$this->tweak = [];
 		if (!is_dir($this->getDataFolder())) mkdir($this->getDataFolder());
+		mc::plugin_init($this,$this->getFile());
 		$this->getServer()->getPluginManager()->registerEvents($this, $this);
 		$defaults = [
 			"version" => $this->getDescription()->getVersion(),
@@ -40,7 +41,6 @@ class Main extends PluginBase implements CommandExecutor,Listener {
 			"border" => Block::NETHER_BRICKS,
 			"center" => Block::STILL_WATER,
 			"corner" => Block::NETHER_BRICKS_STAIRS,
-			"broadcast-tp" => false,
 		];
 		$cfg = (new Config($this->getDataFolder()."config.yml",
 										  Config::YAML,$defaults))->getAll();
@@ -52,7 +52,7 @@ class Main extends PluginBase implements CommandExecutor,Listener {
 		$this->portals=(new Config($this->getDataFolder()."portals.yml",
 											Config::YAML,[]))->getAll();
 		if ($this->getServer()->getPluginManager()->getPlugin("FastTransfer")){
-			$this->getLogger()->info(TextFormat::GREEN."FastTransfer available!");
+			$this->getLogger()->info(TextFormat::GREEN.mc::_("FastTransfer available!"));
 		}
 	}
 	private function checkLevel($w) {
@@ -139,26 +139,36 @@ class Main extends PluginBase implements CommandExecutor,Listener {
 			$back = Block::get($this->corner,2);
 		}
 
+		// Top of the portal
 		$lv->setBlock(new Vector3($x,$y+4,$z),$border);
 		$lv->setBlock(new Vector3($x+$x_off,$y+4,$z+$z_off),$border);
 		$lv->setBlock(new Vector3($x-$x_off,$y+4,$z-$z_off),$border);
 		$lv->setBlock(new Vector3($x+$x_off*2,$y+4,$z+$z_off*2),$corner1);
 		$lv->setBlock(new Vector3($x-$x_off*2,$y+4,$z-$z_off*2),$corner2);
 
+		// Bottom of it (This makes sure the water doesn't leak...)
+		$lv->setBlock(new Vector3($x,$y-1,$z),$border);
+		$lv->setBlock(new Vector3($x+$x_off,$y-1,$z+$z_off),$border);
+		$lv->setBlock(new Vector3($x-$x_off,$y-1,$z-$z_off),$border);
+
+		// Base of the portal (rounded corners)
 		$lv->setBlock(new Vector3($x+$x_off*2,$y,$z+$z_off*2),$corner3);
 		$lv->setBlock(new Vector3($x-$x_off*2,$y,$z-$z_off*2),$corner4);
 		$lv->setBlock(new Vector3($x,$y,$z),$center);
 		$lv->setBlock(new Vector3($x+$x_off,$y,$z+$z_off),$center);
 		$lv->setBlock(new Vector3($x-$x_off,$y,$z-$z_off),$center);
 
+		// Base of the portal (front steps)
 		$lv->setBlock(new Vector3($x+$mx_off,$y,$z+$mz_off),$front);
 		$lv->setBlock(new Vector3($x+$mx_off+$x_off,$y,$z+$mz_off+$z_off),$front);
 		$lv->setBlock(new Vector3($x+$mx_off-$x_off,$y,$z+$mz_off-$z_off),$front);
 
+		// Base of the portal (back steps)
 		$lv->setBlock(new Vector3($x-$mx_off,$y,$z-$mz_off),$back);
 		$lv->setBlock(new Vector3($x-$mx_off+$x_off,$y,$z-$mz_off+$z_off),$back);
 		$lv->setBlock(new Vector3($x-$mx_off-$x_off,$y,$z-$mz_off-$z_off),$back);
 
+		// Middle of the portal (side column and center water)
 		for ($i=1;$i<=3;++$i) {
 			$lv->setBlock(new Vector3($x-$x_off*2,$y+$i,$z-$z_off*2),$border);
 			$lv->setBlock(new Vector3($x+$x_off*2,$y+$i,$z+$z_off*2),$border);
@@ -182,10 +192,11 @@ class Main extends PluginBase implements CommandExecutor,Listener {
 	public function onCommand(CommandSender $sender, Command $cmd, $label, array $args) {
 		switch($cmd->getName()) {
 			case "mtp":
-				if (!$this->inGame($sender)) return true;
+				if (!MPMU::inGame($sender)) return true;
+
 				$dest = $this->checkTarget($args);
 				if (!$dest) {
-					$sender->sendMessage(TextFormat::RED."Invalid target for portal");
+					$sender->sendMessage(TextFormat::RED.mc::_("Invalid target for portal"));
 					return true;
 				}
 				$bl = $this->targetPos($sender,$sender->getDirectionVector());
@@ -197,6 +208,10 @@ class Main extends PluginBase implements CommandExecutor,Listener {
 				return true;
 		}
 		return false;
+	}
+	public function onQuit(PlayerQuitEvent $ev) {
+		$n = strtolower($ev->getPlayer()->getName());
+		if (isset($this->tweak[$n])) unset($this->tweak[$n]);
 	}
 
 	public function onMove(PlayerMoveEvent $ev) {
@@ -218,34 +233,54 @@ class Main extends PluginBase implements CommandExecutor,Listener {
 
 				$dest = $this->checkTarget($target);
 				if (!$dest) {
-					$pl->sendMessage("Nothing happens!");
+					$pl->sendMessage(mc::_("Nothing happens!"));
 					return;
 				}
-				if ($dest instanceof Vector3) {
-					$pl->sendMessage("Teleporting...");
-					if (($mw = $this->getServer()->getPluginManager()->getPlugin("ManyWorlds")) != null) {
-						$mw->mwtp($pl,$dest);
-					} else {
-						$pl->teleport($dest);
-					}
-					return;
+				$n = strtolower($pl->getName());
+				$now = time();
+				if (isset($this->tweak[$n])) {
+					// Already in here...
+					if ($this->tweak[$n][0] > $now) return;
 				}
-				// If it is not a position
-				$ft = $this->getServer()->getPluginManager()->getPlugin("FastTransfer");
-				if (!$ft) {
-					$this->getLogger()->info(TextFormat::RED."FAST TRANSFER NOT INSTALLED");
-					$pl->sendMessage("Nothing happens!");
-					$pl->sendMessage(TextFormat::RED."Somebody removed FastTransfer!");
-					return;
-				}
-				list($addr,$port) = $dest;
-				$this->getLogger()->info(TextFormat::RED."FastTransfer being used hope it works!");
-				$this->getLogger()->info("- Player:  ".$pl->getName()." => ".
-												 $addr.":".$port);
-				$ft->transferPlayer($pl,$addr,$port);
+				$this->tweak[$n] = [ $now + 3, $dest ];
+				$this->getServer()->getScheduler()->scheduleDelayedTask(
+					new PluginCallbackTask($this,[$this,"portalActiveSg1"],[$n]),
+					1);
 				return;
 			}
 		}
+	}
+	public function portalActiveSg1($n) {
+		if (!isset($this->tweak[$n])) return;
+		$pl = $this->getServer()->getPlayer($n);
+		if ($pl === null) return;
+		list(,$dest) = $this->tweak[$n];
+		unset($this->tweak[$n]);
+		if ($dest instanceof Vector3) {
+			$pl->sendMessage(mc::_("Teleporting..."));
+			$pl->teleport($dest);
+			return;
+		}
+		// If it is not a position... It is a FAST TRANSFER!
+
+		$ft = $this->getServer()->getPluginManager()->getPlugin("FastTransfer");
+		if (!$ft) {
+			$this->getLogger()->error(TextFormat::RED.mc::_("FAST TRANSFER NOT INSTALLED"));
+			$pl->sendMessage(mc::_("Nothing happens!"));
+			$pl->sendMessage(TextFormat::RED.mc::_("Somebody removed FastTransfer!"));
+			return;
+		}
+		// First we teleport to spawn to make sure that we do not enter
+		// this server in the portal location!
+		$spawn = $pl->getLevel()->getSafeSpawn();
+		$pl->teleport($spawn);
+
+		list($addr,$port) = $dest;
+		$this->getLogger()->info(TextFormat::RED.mc::_("FastTransfer being used hope it works!"));
+		$this->getLogger()->info(mc::_("- Player: %1% => %2%:%3%",
+												 $pl->getName(),$addr,$port));
+
+		$ft->transferPlayer($pl,$addr,$port);
 	}
 
 	/**
@@ -271,7 +306,7 @@ class Main extends PluginBase implements CommandExecutor,Listener {
 				$pl = $ev->getPlayer();
 				if (($pl instanceof Player) && !$pl->hasPermission("mtp.destroy")) {
 					$ev->setCancelled();
-					$pl->sendMessage("You are not allowed to do that!");
+					$pl->sendMessage(mc::_("You are not allowed to do that!"));
 					return;
 				}
 				$air = Block::get(Block::AIR);
@@ -282,7 +317,7 @@ class Main extends PluginBase implements CommandExecutor,Listener {
 						}
 					}
 				}
-				$pl->sendMessage("Portal broken!");
+				$pl->sendMessage(mc::_("Portal broken!"));
 				unset($this->portals[$world][$i]);
 				$this->saveCfg();
 				return;
