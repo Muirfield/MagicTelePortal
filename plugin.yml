@@ -2,18 +2,21 @@ main: aliuly\mtp\Main
 api: 1.10.0
 load: POSTWORLD
 
-name: MeTooPortal
-description: Yet another portal plugin
-version: 1.1.0
+name: MagicTelePortal
+description: A simple portal plugin
+version: 1.2.0
 author: aliuly
 
 commands:
     mtp:
         description: Create a portal
         usage: "/mtp [world|addr:port] [x y z]"
-        permission: metooportal.cmd.mtp
+        permission: mtp.cmd.mtp
 
 permissions:
-    metooportal.cmd.mtp:
+    mtp.cmd.mtp:
         default: op
         description: "Allow to create portal"
+    mtp.destroy:
+        default: op
+        description: Allow destruction of portals

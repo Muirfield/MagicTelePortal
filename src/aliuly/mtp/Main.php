@@ -35,6 +35,7 @@ class Main extends PluginBase implements CommandExecutor,Listener {
 		if (!is_dir($this->getDataFolder())) mkdir($this->getDataFolder());
 		$this->getServer()->getPluginManager()->registerEvents($this, $this);
 		$defaults = [
+			"version" => $this->getDescription()->getVersion(),
 			"max-dist" => 8,
 			"border" => Block::NETHER_BRICKS,
 			"center" => Block::STILL_WATER,
@@ -247,6 +248,9 @@ class Main extends PluginBase implements CommandExecutor,Listener {
 		}
 	}
 
+	/**
+	 * @priority HIGH
+	 */
 	public function onBlockBreak(BlockBreakEvent $ev){
 		if ($ev->isCancelled()) return;
 		$bl = $ev->getBlock();
@@ -264,6 +268,12 @@ class Main extends PluginBase implements CommandExecutor,Listener {
 			if ($bb2[0] <= $x && $bb2[1] <= $y && $bb2[2] <= $z &&
 				 $x <= $bb2[3] && $y <= $bb2[4] && $z <= $bb2[5]) {
 				// Breaking a portal!
+				$pl = $ev->getPlayer();
+				if (($pl instanceof Player) && !$pl->hasPermission("mtp.destroy")) {
+					$ev->setCancelled();
+					$pl->sendMessage("You are not allowed to do that!");
+					return;
+				}
 				$air = Block::get(Block::AIR);
 				for($bx=$bb1[0];$bx<$bb1[3];$bx++) {
 					for($by=$bb1[1];$by<$bb1[4];$by++) {
@@ -272,7 +282,6 @@ class Main extends PluginBase implements CommandExecutor,Listener {
 						}
 					}
 				}
-				$pl = $ev->getPlayer();
 				$pl->sendMessage("Portal broken!");
 				unset($this->portals[$world][$i]);
 				$this->saveCfg();

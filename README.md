@@ -1,5 +1,4 @@
-<img src="https://raw.githubusercontent.com/Muirfield/MagicTelePortal/master/media/portal-icon.jpg" style="width:64px;height:64px" width="64" height="64"/>
-# MeTooPortal
+# MagicTelePortal
 
 * Summary: Easy to use Portal plugin
 * Dependency Plugins: N/A
@@ -56,7 +55,8 @@ broadcast-tp: true
 
 ### Permission Nodes:
 
-* metooportal.cmd.mtp: Permission to create portals
+* mtp.cmd.mtp: Permission to create portals
+* mtp.destroy: Permission to destroy portals
 
 FAQ
 ---
@@ -64,14 +64,13 @@ FAQ
 * Q: How do I prevent people from breaking my portal?
 * A: Use an anti-grief plugin.
 
-Todo
-----
-
-* Add broadcast-tp option.
 
 Changes
 -------
 
+* 1.2.0 : Simple update
+  * Renamed to MagicTelePortal
+  * Added `mtp.destroy` permission
 * 1.1.0 : Next release
   * Support for FastTransfer
   * Some configuration options
@@ -80,7 +79,7 @@ Changes
 Copyright
 ---------
 
-    MeTooPortal
+    MagicTelePortal
     Copyright (C) 2015 Alejandro Liu
     All Rights Reserved.
 
